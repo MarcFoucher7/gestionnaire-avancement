@@ -1,103 +1,73 @@
-import Image from "next/image";
+import Link from "next/link";
+import { formatDistanceToNow } from "date-fns";
+import { fr } from "date-fns/locale";
+import { FolderOpen, GitBranch, Plus } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { createProject } from "./actions";
+import { ProgressRing } from "@/components/progress-ring";
+import { CATEGORY_LABEL, STATUS_LABEL, type Project } from "@/lib/types";
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+  const [{ data: projects }, { data: progress }] = await Promise.all([
+    supabase.from("projects").select("*").neq("status", "termine").order("deadline", { nullsFirst: false }),
+    supabase.from("project_progress").select("*"),
+  ]);
+  const prog = new Map((progress ?? []).map((p) => [p.project_id, p]));
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight">Mes projets en cours</h1>
+        <p className="mt-1 text-muted">Tout ce qui est sur le feu, au même endroit.</p>
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {(projects as Project[] | null)?.map((p) => {
+          const pr = prog.get(p.id);
+          const ratio = pr && pr.total_tasks ? pr.done_tasks / pr.total_tasks : 0;
+          return (
+            <Link key={p.id} href={`/projets/${p.id}`}
+              className="card group flex flex-col gap-3 p-5 transition hover:-translate-y-0.5 hover:shadow-md">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <span className="chip" style={{ borderColor: p.color, color: p.color }}>
+                    {CATEGORY_LABEL[p.category]}
+                  </span>
+                  <h2 className="mt-2 font-semibold leading-tight">{p.name}</h2>
+                </div>
+                <ProgressRing value={ratio} color={p.color} />
+              </div>
+              <div className="mt-auto flex flex-wrap items-center gap-2 text-xs text-muted">
+                <span>{STATUS_LABEL[p.status]}</span>
+                {pr && <span>· {pr.done_tasks}/{pr.total_tasks} tâches</span>}
+                {p.deadline && (
+                  <span>· {formatDistanceToNow(new Date(p.deadline), { addSuffix: true, locale: fr })}</span>
+                )}
+                {p.folder_path && <FolderOpen size={14} />}
+                {p.github_url && <GitBranch size={14} />}
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      <details className="card p-5">
+        <summary className="flex cursor-pointer items-center gap-2 font-medium"><Plus size={16} /> Nouveau projet</summary>
+        <form action={createProject} className="mt-4 grid gap-3 sm:grid-cols-2">
+          <input name="name" required placeholder="Nom (ex : Éval R3.04 jeudi)" className="input sm:col-span-2" />
+          <select name="category" className="input">
+            {Object.entries(CATEGORY_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+          <input name="deadline" type="datetime-local" className="input" />
+          <input name="folder_path" placeholder="Dossier PC (C:\Users\...)" className="input" />
+          <input name="github_url" placeholder="https://github.com/..." className="input" />
+          <label className="flex items-center gap-2 text-sm text-muted">
+            Couleur <input name="color" type="color" defaultValue="#6366f1" />
+          </label>
+          <button className="btn-primary sm:justify-self-end">Créer</button>
+        </form>
+      </details>
     </div>
   );
 }

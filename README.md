@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ◐ Avancement
 
-## Getting Started
+Mon gestionnaire de projets perso : évals, projets perso, prépa CUEC, recherche de stage.
+Tâches à cocher, liens vers les dossiers du PC et GitHub, emploi du temps IUT (ICS),
+créneaux de travail déplaçables, journal, et création de tâches par Claude à partir d'un cours.
 
-First, run the development server:
+**Stack** : Next.js 15 (App Router) · Tailwind CSS 4 · Supabase (Postgres + Auth) · Vercel.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Mise en route
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. Crée un projet gratuit sur [supabase.com](https://supabase.com).
+2. Dans **SQL Editor**, colle le contenu de `supabase/migrations/0001_init.sql` et clique sur **Run**.
+3. Dans **Authentication → URL Configuration**, ajoute `http://localhost:3000/auth/callback`
+   (et plus tard l'URL Vercel) dans les *Redirect URLs*.
+4. Copie `.env.example` vers `.env.local` et remplis l'URL et la clé `anon` (Settings → API).
+5. Lance l'app :
+   ```bash
+   npm install
+   npm run dev
+   ```
+6. Ouvre http://localhost:3000, connecte-toi avec le lien magique reçu par mail.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Déploiement
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Importe le repo sur [vercel.com](https://vercel.com), ajoute les deux variables d'environnement, déploie.
+Pense à ajouter `https://<ton-app>.vercel.app/auth/callback` dans les Redirect URLs Supabase.
 
-## Learn More
+## Les pages
 
-To learn more about Next.js, take a look at the following resources:
+| Page | Ce qu'on y fait |
+|---|---|
+| `/` | Tous les projets en cours, avec leur avancement |
+| `/projets/[id]` | Les tâches à cocher, le lien vers le dossier (s'ouvre dans VS Code) et vers GitHub |
+| `/agenda` | Les cours de l'IUT (ICS), les créneaux de travail (fait / décaler / annuler) et les trous libres |
+| `/journal` | « J'ai fait ça à tel moment » |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Pipeline « mon cours → mes tâches »
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Voir [`docs/pipeline-claude.md`](docs/pipeline-claude.md).
