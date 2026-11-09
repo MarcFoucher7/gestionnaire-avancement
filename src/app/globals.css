@@ -43,3 +43,42 @@ body {
   .btn-ghost { @apply rounded-xl px-3 py-1.5 text-sm text-muted transition hover:bg-bg hover:text-text; }
   .chip { @apply inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-xs text-muted; }
 }
+
+/* Calendrier de date (react-day-picker) aux couleurs de l'app */
+.rdp-avancement .rdp-root {
+  --rdp-accent-color: var(--accent);
+  --rdp-accent-background-color: color-mix(in srgb, var(--accent) 15%, transparent);
+  --rdp-day-height: 36px;
+  --rdp-day-width: 36px;
+  --rdp-day_button-height: 34px;
+  --rdp-day_button-width: 34px;
+  font-size: 14px;
+}
+
+/* FullCalendar aux couleurs de l'app */
+.fc {
+  --fc-border-color: var(--border);
+  --fc-page-bg-color: var(--surface);
+  --fc-neutral-bg-color: var(--bg);
+  --fc-today-bg-color: color-mix(in srgb, var(--accent) 7%, transparent);
+  --fc-now-indicator-color: #ef4444;
+  --fc-button-bg-color: var(--surface);
+  --fc-button-border-color: var(--border);
+  --fc-button-text-color: var(--text);
+  --fc-button-hover-bg-color: var(--bg);
+  --fc-button-hover-border-color: var(--border);
+  --fc-button-active-bg-color: var(--accent);
+  --fc-button-active-border-color: var(--accent);
+  font-size: 13px;
+}
+.fc .fc-button { border-radius: 10px; text-transform: capitalize; box-shadow: none !important; }
+.fc .fc-button-primary:not(:disabled).fc-button-active { color: white; }
+.fc .fc-toolbar-title { font-size: 1.15rem; font-weight: 600; text-transform: capitalize; }
+.fc .fc-event { border-radius: 8px; padding: 1px 3px; cursor: pointer; }
+.fc .fc-event.course { cursor: default; }
+.fc .fc-col-header-cell-cushion { text-transform: capitalize; padding: 6px; }
+.fc .fc-timegrid-slot { height: 2.2em; }
+@media (max-width: 640px) {
+  .fc .fc-toolbar { flex-wrap: wrap; gap: 8px; }
+  .fc .fc-toolbar-title { font-size: 1rem; }
+}
