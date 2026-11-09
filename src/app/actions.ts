@@ -17,6 +17,11 @@ const num = (f: FormData, k: string) => {
   const v = str(f, k);
   return v === null ? null : Number(v);
 };
+/** Remonte l'erreur Supabase à l'écran au lieu de l'ignorer. */
+function must<T extends { error: { message: string } | null }>(res: T): T {
+  if (res.error) throw new Error(`Base de données : ${res.error.message}`);
+  return res;
+}
 const refresh = () => revalidatePath("/", "layout");
 
 function projectFields(form: FormData) {
@@ -46,19 +51,19 @@ export async function createProject(form: FormData) {
 
 export async function updateProject(id: string, form: FormData) {
   const supabase = await createClient();
-  await supabase.from("projects").update(projectFields(form)).eq("id", id);
+  must(await supabase.from("projects").update(projectFields(form)).eq("id", id));
   refresh();
 }
 
 export async function updateProjectStatus(id: string, status: string) {
   const supabase = await createClient();
-  await supabase.from("projects").update({ status }).eq("id", id);
+  must(await supabase.from("projects").update({ status }).eq("id", id));
   refresh();
 }
 
 export async function deleteProject(id: string) {
   const supabase = await createClient();
-  await supabase.from("projects").delete().eq("id", id);
+  must(await supabase.from("projects").delete().eq("id", id));
   refresh();
   redirect("/");
 }
@@ -67,13 +72,13 @@ export async function deleteProject(id: string) {
 
 export async function createTask(projectId: string, form: FormData) {
   const supabase = await createClient();
-  await supabase.from("tasks").insert({
+  must(await supabase.from("tasks").insert({
     project_id: projectId,
     title: str(form, "title"),
     due_date: str(form, "due_date"),
     estimated_minutes: num(form, "estimated_minutes") ?? 60,
     priority: num(form, "priority") ?? 2,
-  });
+  }));
   refresh();
 }
 
@@ -84,16 +89,16 @@ export async function toggleTask(id: string, done: boolean) {
     .eq("id", id).select("project_id,title").single();
   // Automatisme : chaque tâche cochée s'écrit dans le journal
   if (done && task) {
-    await supabase.from("journal_entries").insert({ project_id: task.project_id, task_id: id, note: `✅ ${task.title}` });
+    must(await supabase.from("journal_entries").insert({ project_id: task.project_id, task_id: id, note: `✅ ${task.title}` }));
     // et ses créneaux futurs prévus ne servent plus à rien
-    await supabase.from("work_sessions").delete().eq("task_id", id).eq("status", "prevu").gte("starts_at", new Date().toISOString());
+    must(await supabase.from("work_sessions").delete().eq("task_id", id).eq("status", "prevu").gte("starts_at", new Date().toISOString()));
   }
   refresh();
 }
 
 export async function deleteTask(id: string) {
   const supabase = await createClient();
-  await supabase.from("tasks").delete().eq("id", id);
+  must(await supabase.from("tasks").delete().eq("id", id));
   refresh();
 }
 
@@ -123,14 +128,14 @@ export async function replanMissed() {
 
 export async function createSession(input: { project_id: string; task_id?: string | null; starts_at: string; ends_at: string; title?: string | null }) {
   const supabase = await createClient();
-  await supabase.from("work_sessions").insert({ ...input, auto: false });
+  must(await supabase.from("work_sessions").insert({ ...input, auto: false }));
   refresh();
 }
 
 export async function moveSession(id: string, starts_at: string, ends_at: string) {
   const supabase = await createClient();
   // déplacé à la main → le planificateur n'y touche plus
-  await supabase.from("work_sessions").update({ starts_at, ends_at, status: "prevu", auto: false }).eq("id", id);
+  must(await supabase.from("work_sessions").update({ starts_at, ends_at, status: "prevu", auto: false }).eq("id", id));
   refresh();
 }
 
@@ -140,20 +145,20 @@ export async function setSessionStatus(id: string, status: "prevu" | "fait" | "a
     .select("project_id,task_id,title,starts_at,ends_at").single();
   // Automatisme : un créneau « fait » s'écrit dans le journal
   if (status === "fait" && s) {
-    await supabase.from("journal_entries").insert({
+    must(await supabase.from("journal_entries").insert({
       project_id: s.project_id,
       task_id: s.task_id,
       happened_at: s.starts_at,
       duration_minutes: Math.round((+new Date(s.ends_at) - +new Date(s.starts_at)) / 60_000),
       note: `📚 ${s.title ?? "Session de travail"}`,
-    });
+    }));
   }
   refresh();
 }
 
 export async function deleteSession(id: string) {
   const supabase = await createClient();
-  await supabase.from("work_sessions").delete().eq("id", id);
+  must(await supabase.from("work_sessions").delete().eq("id", id));
   refresh();
 }
 
@@ -161,18 +166,18 @@ export async function deleteSession(id: string) {
 
 export async function addJournalEntry(form: FormData) {
   const supabase = await createClient();
-  await supabase.from("journal_entries").insert({
+  must(await supabase.from("journal_entries").insert({
     note: str(form, "note"),
     project_id: str(form, "project_id"),
     happened_at: fromLocalInput(str(form, "happened_at")) ?? new Date().toISOString(),
     duration_minutes: num(form, "duration_minutes"),
-  });
+  }));
   refresh();
 }
 
 export async function deleteJournalEntry(id: string) {
   const supabase = await createClient();
-  await supabase.from("journal_entries").delete().eq("id", id);
+  must(await supabase.from("journal_entries").delete().eq("id", id));
   refresh();
 }
 
@@ -181,7 +186,7 @@ export async function deleteJournalEntry(id: string) {
 export async function saveSettings(form: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  await supabase.from("settings").upsert({
+  must(await supabase.from("settings").upsert({
     user_id: user!.id,
     ics_url: str(form, "ics_url"),
     github_login: str(form, "github_login"),
@@ -190,7 +195,7 @@ export async function saveSettings(form: FormData) {
     session_minutes: num(form, "session_minutes") ?? 90,
     daily_cap: num(form, "daily_cap") ?? 180,
     weekends: form.get("weekends") === "on",
-  });
+  }));
   refresh();
 }
 
@@ -240,7 +245,7 @@ export async function magicProject(_: MagicState, form: FormData): Promise<Magic
     if (error) throw new Error(error.message);
     projectId = project.id;
 
-    await supabase.from("tasks").insert(plan.tasks.map((t, i) => ({
+    must(await supabase.from("tasks").insert(plan.tasks.map((t, i) => ({
       project_id: projectId,
       title: t.title,
       details: t.details,
@@ -249,7 +254,7 @@ export async function magicProject(_: MagicState, form: FormData): Promise<Magic
       priority: t.priority,
       position: i,
       source: "claude",
-    })));
+    }))));
     await autoPlanProject(supabase, projectId);
   } catch (e) {
     return { error: (e as Error).message };

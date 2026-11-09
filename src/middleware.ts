@@ -2,6 +2,12 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
+  // sans variables Supabase, on envoie vers le diagnostic plutôt que de planter
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/diagnostic";
+    return NextResponse.redirect(url);
+  }
   let response = NextResponse.next({ request });
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,5 +35,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|ico|sh)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|diagnostic|.*\\.(?:svg|png|jpg|ico|sh)$).*)"],
 };
